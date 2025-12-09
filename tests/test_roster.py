@@ -1,5 +1,5 @@
 from config.LeagueConfig import league_teams_default_config
-from builder import RosterBuilder
+from builder import RosterBuilder as rb
 
 def test_build_roster_skeleton():
     expected = {
@@ -14,4 +14,10 @@ def test_build_roster_skeleton():
         "BENCH": 3
     }
 
-    assert RosterBuilder.build_roster_skeleton(league_teams_default_config) == expected
+    assert rb.build_roster_skeleton(league_teams_default_config) == expected
+
+def test_zero_bench():
+    league_config = league_teams_default_config
+    league_config["bench_spots"] = 0
+
+    assert rb.build_roster_skeleton(league_config)["BENCH"] == 0
