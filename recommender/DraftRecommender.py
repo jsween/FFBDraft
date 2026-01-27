@@ -12,6 +12,7 @@ class DraftRecommender:
         """Initialize with player rankings data."""
         self.rankings = pd.read_csv(player_rankings_path)
         self.drafted_players = set()
+        self._scarcity_cache = {}
 
     @staticmethod
     def get_position_needs(roster, league_config):
@@ -48,8 +49,7 @@ class DraftRecommender:
 
         return needs
 
-    @staticmethod
-    def calculate_player_value(player_row, position_needs):
+    def calculate_player_value(self, player_row, position_needs, season):
         """
         Calculate value score for a player based on:
         - Position scarcity
@@ -59,6 +59,7 @@ class DraftRecommender:
         Args:
             player_row: DataFrame row with player stats
             position_needs: Dict of position needs
+            season: Scarcity calculation
 
         Returns:
             Float value score
@@ -84,6 +85,26 @@ class DraftRecommender:
         # Bonus for elite players (top 20% in their position)
         if player_row.get('position_percentile', 0) >= 0.8:
             value_score *= 1.3
+
+        if season not in self._scarcity_cache:
+            self._scarcity_cache[season] = self.get_position_scarcity(season=season)
+
+        scarcity_data = self._scarcity_cache[season]
+        pos_scarcity = scarcity_data[scarcity_data['position'] == position]
+
+        if not pos_scarcity.empty:
+            scarcity_score = pos_scarcity.iloc[0]['scarcity_score']
+
+            # Apply scarcity multiplier based on thresholds
+            if scarcity_score > 1.8:  # Very high scarcity (RB, WR, TE)
+                value_score *= 1.25
+            elif scarcity_score > 1.2:  # High scarcity
+                value_score *= 1.15
+            elif scarcity_score > 0.8:  # Medium scarcity
+                value_score *= 1.05
+            # Low scarcity positions get no boost
+            elif scarcity_score < 0.5:
+                value_score *= 0.95
 
         return value_score
 
@@ -116,10 +137,8 @@ class DraftRecommender:
             return pd.DataFrame()
 
         # Calculate value for each player
-        available['value_score'] = available.apply(
-            lambda row: self.calculate_player_value(row, position_needs),
-            axis=1
-        )
+        available['value_score'] = available.apply(lambda row: self.calculate_player_value(row, position_needs, season),
+                                                   axis=1)
 
         # Sort by value and get top N
         recs = available.nlargest(top_n, 'value_score')
@@ -139,6 +158,7 @@ class DraftRecommender:
     def reset_draft(self):
         """Reset the draft (clear all drafted players)."""
         self.drafted_players = set()
+        self._scarcity_cache = {}
 
     def get_best_available_by_position(self, position, season=2024, n=5):
         """
@@ -248,7 +268,6 @@ class DraftRecommender:
         return pd.DataFrame(scarcity).sort_values('scarcity_score', ascending=False)
 
 
-# Example usage / testing
 # Example usage / testing
 if __name__ == "__main__":
     import sys
