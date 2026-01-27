@@ -4,7 +4,7 @@
 This project is designed to showcase skills learned in the course. The project allows users to use this tool to draft Fantasy Football players.
 
 ### To Do
-[ ] Calculate points based off league config
+[ ] Change all IDP positions to IDP and re-run data prep
 
 [ ] Train model
 
