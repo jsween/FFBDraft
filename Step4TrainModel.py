@@ -50,8 +50,8 @@ def prepare_features(df):
     data['points_vs_position_avg'] = data['fantasy_points'] - data['position_avg_points']
     data['ppg_vs_position_avg'] = data['points_per_game'] - data['position_avg_ppg']
     # Fill NaN values for first season (no data available in prev year)
-    data['prev_season_points'].fillna(data['position_avg_points'], inplace=True)
-    data['prev_season_ppg'].fillna(data['position_avg_ppg'], inplace=True)
+    data['prev_season_points'] = data['prev_season_points'].fillna(data['position_avg_points'])
+    data['prev_season_ppg'] = data['prev_season_ppg'].fillna(data['position_avg_ppg'])
 
     return data, le
 
