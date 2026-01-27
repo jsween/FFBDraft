@@ -6,3 +6,5 @@ This project is designed to showcase skills learned in the course. The project a
 ### To Do
 
 [ ] Generate recommendations
+
+[ ] Consolidate Team Defense
