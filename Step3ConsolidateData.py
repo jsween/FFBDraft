@@ -1,0 +1,199 @@
+"""
+Step 3: Consolidate all processed data and calculate fantasy points.
+Run this after Step1DataProcessing.ipynb and Step2CleanData.ipynb.
+"""
+import pandas as pd
+from pathlib import Path
+from config.ScoringConfig import league_default_scoring_config as scoring
+
+
+def calculate_offensive_points(row):
+    """Calculate fantasy points for offensive players."""
+    points = 0
+
+    # Passing
+    points += row.get('passing_yards', 0) * scoring['passing']['py']
+    points += row.get('pass_touchdown', 0) * scoring['passing']['ptd']
+    points += row.get('interception', 0) * scoring['passing']['int']
+
+    # Rushing
+    points += row.get('rushing_yards', 0) * scoring['rushing']['ry']
+    points += row.get('rush_touchdown', 0) * scoring['rushing']['rtd']
+
+    # Receiving
+    points += row.get('receiving_yards', 0) * scoring['receiving']['rey']
+
+    # Total TDs (for receiving TDs)
+    if pd.notna(row.get('total_tds', 0)):
+        # Receiving TDs = total_tds - rush_touchdown - pass_touchdown
+        receiving_tds = row.get('total_tds', 0) - row.get('rush_touchdown', 0)
+        points += receiving_tds * scoring['receiving']['retd']
+
+    # Fumbles
+    points += row.get('fumble', 0) * scoring['misc']['fuml']
+
+    return points
+
+
+def calculate_defensive_points(row):
+    """Calculate fantasy points for defensive players."""
+    points = 0
+
+    points += row.get('sack', 0) * scoring['def_plyr']['sk']
+    points += row.get('solo_tackle', 0) * scoring['def_plyr']['tk']
+    points += row.get('assist_tackle', 0) * scoring['def_plyr']['tka']
+    points += row.get('tackle_with_assist', 0) * scoring['def_plyr']['tks']
+    points += row.get('interception', 0) * scoring['def_plyr']['int']
+    points += row.get('fumble_forced', 0) * scoring['def_plyr']['ff']
+    points += row.get('def_touchdown', 0) * 6  # Simplified for PM project
+    points += row.get('safety', 0) * scoring['def_plyr']['sf']
+
+    return points
+
+
+def calculate_kicking_points(row):
+    """Calculate fantasy points for kickers."""
+    points = 0
+
+    # Field goals by distance
+    points += row.get('fg_made_0_19', 0) * scoring['kicking']['fg0']
+    points += row.get('fg_made_20_29', 0) * scoring['kicking']['fg0']
+    points += row.get('fg_made_30_39', 0) * scoring['kicking']['fg0']
+    points += row.get('fg_made_40_49', 0) * scoring['kicking']['fg40']
+    points += row.get('fg_made_50_59', 0) * scoring['kicking']['fg50']
+    points += row.get('fg_made_60_', 0) * scoring['kicking']['fg60']
+
+    # PATs and misses
+    points += row.get('pat_made', 0) * scoring['kicking']['pat']
+    points += row.get('pat_missed', 0) * scoring['kicking']['patm']
+    points += row.get('fg_missed', 0) * scoring['kicking']['fgm']
+
+    return points
+
+
+def main():
+    """Main consolidation function."""
+    processed_path = Path("data/processed/")
+
+    print("=" * 60)
+    print("  STEP 3: CONSOLIDATING PLAYER DATA")
+    print("=" * 60)
+
+    # Read processed data
+    print("\n1. Loading processed data...")
+    try:
+        off_df = pd.read_csv(processed_path / "off_position_year_summary.csv")
+        print(f"Loaded {len(off_df)} offensive records")
+    except FileNotFoundError:
+        print("off_position_year_summary.csv not found!")
+        return None
+
+    try:
+        def_df = pd.read_csv(processed_path / "def_position_year_summary.csv")
+        print(f"Loaded {len(def_df)} defensive records")
+    except FileNotFoundError:
+        print("def_position_year_summary.csv not found!")
+        return None
+
+    try:
+        kick_df = pd.read_csv(processed_path / "kicking_position_summary.csv")
+        print(f"Loaded {len(kick_df)} kicking records")
+    except FileNotFoundError:
+        print("kicking_position_summary.csv not found!")
+        return None
+
+    # Calculate fantasy points
+    print("\n2. Calculating fantasy points...")
+    off_df['fantasy_points'] = off_df.apply(calculate_offensive_points, axis=1)
+    def_df['fantasy_points'] = def_df.apply(calculate_defensive_points, axis=1)
+    kick_df['fantasy_points'] = kick_df.apply(calculate_kicking_points, axis=1)
+    print("   ✓ Fantasy points calculated for all players")
+
+    # Add player type identifier
+    off_df['player_type'] = 'offensive'
+    def_df['player_type'] = 'defensive'
+    kick_df['player_type'] = 'kicker'
+
+    # Standardize columns
+    print("\n3. Standardizing columns...")
+
+    # Offensive players
+    off_cols = ['position', 'season', 'games_played_season', 'fantasy_points', 'player_type']
+    off_final = off_df[off_cols].copy()
+
+    # Defensive players
+    def_cols = ['position', 'season', 'games_played_season', 'fantasy_points', 'player_type']
+    def_final = def_df[def_cols].copy()
+
+    # Kickers - check if 'week' column exists and rename
+    if 'week' in kick_df.columns:
+        kick_df = kick_df.rename(columns={'week': 'games_played_season'})
+    kick_df['position'] = 'K'
+    kick_cols = ['position', 'season', 'games_played_season', 'fantasy_points', 'player_type']
+    kick_final = kick_df[kick_cols].copy()
+
+    print("Columns standardized across all datasets")
+
+    # Combine all datasets
+    print("\n4. Combining datasets...")
+    combined_df = pd.concat([off_final, def_final, kick_final], ignore_index=True)
+    print(f"   ✓ Combined into {len(combined_df)} total player-seasons")
+
+    # Calculate points per game
+    combined_df['points_per_game'] = (
+            combined_df['fantasy_points'] / combined_df['games_played_season']
+    ).round(2)
+
+    # Filter out players with few games (< 4 games)
+    original_count = len(combined_df)
+    combined_df = combined_df[combined_df['games_played_season'] >= 4]
+    filtered_count = original_count - len(combined_df)
+    print(f"Filtered {filtered_count} records with < 4 games played")
+
+    # Save consolidated dataset
+    output_path = processed_path / "consolidated_player_data.csv"
+    combined_df.to_csv(output_path, index=False)
+    print(f"\n✓ Saved consolidated data to: {output_path}")
+
+    # Print summary statistics
+    print("\n" + "=" * 60)
+    print("  Summary Stats")
+    print("=" * 60)
+    print(f"\nTotal player-seasons: {len(combined_df):,}")
+
+    print(f"\nPlayers by position:")
+    pos_counts = combined_df['position'].value_counts().sort_index()
+    for pos, count in pos_counts.items():
+        print(f"  {pos:6s}: {count:4d}")
+
+    print(f"\nPlayers by season:")
+    season_counts = combined_df['season'].value_counts().sort_index()
+    for season, count in season_counts.items():
+        print(f"  {season}: {count:4d}")
+
+    print(f"\nFantasy points statistics:")
+    print(f"  Mean:   {combined_df['fantasy_points'].mean():.2f}")
+    print(f"  Median: {combined_df['fantasy_points'].median():.2f}")
+    print(f"  Std:    {combined_df['fantasy_points'].std():.2f}")
+    print(f"  Min:    {combined_df['fantasy_points'].min():.2f}")
+    print(f"  Max:    {combined_df['fantasy_points'].max():.2f}")
+
+    print(f"\nPoints per game statistics:")
+    print(f"  Mean:   {combined_df['points_per_game'].mean():.2f}")
+    print(f"  Median: {combined_df['points_per_game'].median():.2f}")
+    print(f"  Std:    {combined_df['points_per_game'].std():.2f}")
+    print(f"  Min:    {combined_df['points_per_game'].min():.2f}")
+    print(f"  Max:    {combined_df['points_per_game'].max():.2f}")
+
+    print("\n" + "=" * 60)
+    print("DATA CONSOLIDATION COMPLETE!")
+    print("=" * 60)
+
+    return combined_df
+
+
+if __name__ == "__main__":
+    df = main()
+    if df is not None:
+        print("\nReady for Step 4: Model Training")
+        print("   Run: python Step4TrainModel.py")
