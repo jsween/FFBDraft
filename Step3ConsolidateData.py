@@ -73,30 +73,30 @@ def calculate_kicking_points(row):
 
 def main():
     """Main consolidation function."""
-    processed_path = Path("data/processed/")
+    cleaned_path = Path("data/cleaned/")
 
     print("=" * 60)
     print("  STEP 3: CONSOLIDATING PLAYER DATA")
     print("=" * 60)
 
-    # Read processed data
-    print("\n1. Loading processed data...")
+    # Read cleaned data
+    print("\n1. Loading cleaned data...")
     try:
-        off_df = pd.read_csv(processed_path / "off_position_year_summary.csv")
+        off_df = pd.read_csv(cleaned_path / "off_position_year_summary.csv")
         print(f"Loaded {len(off_df)} offensive records")
     except FileNotFoundError:
         print("off_position_year_summary.csv not found!")
         return None
 
     try:
-        def_df = pd.read_csv(processed_path / "def_position_year_summary.csv")
+        def_df = pd.read_csv(cleaned_path / "def_position_year_summary.csv")
         print(f"Loaded {len(def_df)} defensive records")
     except FileNotFoundError:
         print("def_position_year_summary.csv not found!")
         return None
 
     try:
-        kick_df = pd.read_csv(processed_path / "kicking_position_summary.csv")
+        kick_df = pd.read_csv(cleaned_path / "kicking_position_summary.csv")
         print(f"Loaded {len(kick_df)} kicking records")
     except FileNotFoundError:
         print("kicking_position_summary.csv not found!")
@@ -151,7 +151,7 @@ def main():
     print(f"Filtered {filtered_count} records with < 4 games played")
 
     # Save consolidated dataset
-    output_path = processed_path / "consolidated_player_data.csv"
+    output_path = cleaned_path / "consolidated_player_data.csv"
     combined_df.to_csv(output_path, index=False)
     print(f"\n✓ Saved consolidated data to: {output_path}")
 

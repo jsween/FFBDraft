@@ -7,4 +7,4 @@ This project is designed to showcase skills learned in the course. The project a
 
 [ ] Generate recommendations
 
-[ ] Consolidate Team Defense
+[ ] Clean team defense and kicking data
