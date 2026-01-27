@@ -146,7 +146,7 @@ def main():
         print(f"     {row['feature']:30s} {bar} {row['importance']:.3f}")
 
     # Save model
-    print("\n6. Saving model...")
+    print("\nSaving model...")
     models_path = Path("models")
     models_path.mkdir(exist_ok=True)
 
