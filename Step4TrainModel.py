@@ -64,7 +64,7 @@ def main():
     # Load consolidated data
     print("\nLoading consolidated data...")
     try:
-        df = pd.read_csv("data/processed/consolidated_player_data.csv")
+        df = pd.read_csv("data/cleaned/consolidated_player_data.csv")
         print(f"  Loaded {len(df)} player-season records")
     except FileNotFoundError:
         print("   Error: consolidated_player_data.csv not found!")
@@ -74,7 +74,7 @@ def main():
     print("\nCreating position rankings...")
     df_ranked = create_position_rankings(df)
     # Save rankings
-    rankings_path = "data/processed/player_rankings.csv"
+    rankings_path = "data/summary/player_rankings.csv"
     df_ranked.to_csv(rankings_path, index=False)
     print(f"  Rankings created and saved to {rankings_path}")
     # Prepare features

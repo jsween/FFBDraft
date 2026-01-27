@@ -76,7 +76,7 @@ def main():
     cleaned_path = Path("data/cleaned/")
 
     print("=" * 60)
-    print("  STEP 3: CONSOLIDATING PLAYER DATA")
+    print("CONSOLIDATING PLAYER DATA")
     print("=" * 60)
 
     # Read cleaned data
@@ -103,7 +103,7 @@ def main():
         return None
 
     # Calculate fantasy points
-    print("\n2. Calculating fantasy points...")
+    print("\nCalculating fantasy points...")
     off_df['fantasy_points'] = off_df.apply(calculate_offensive_points, axis=1)
     def_df['fantasy_points'] = def_df.apply(calculate_defensive_points, axis=1)
     kick_df['fantasy_points'] = kick_df.apply(calculate_kicking_points, axis=1)
@@ -135,9 +135,9 @@ def main():
     print("Columns standardized across all datasets")
 
     # Combine all datasets
-    print("\n4. Combining datasets...")
+    print("\nCombining datasets...")
     combined_df = pd.concat([off_final, def_final, kick_final], ignore_index=True)
-    print(f"   ✓ Combined into {len(combined_df)} total player-seasons")
+    print(f"  Combined into {len(combined_df)} total player-seasons")
 
     # Calculate points per game
     combined_df['points_per_game'] = (
