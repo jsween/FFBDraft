@@ -5,6 +5,9 @@ This project is designed to showcase skills learned in the course. The project a
 
 ### To Do
 
+[ ] View Analysis
+
 [ ] Generate recommendations
 
-[ ] Clean team defense and kicking data
+### Future Improvements
+* Limit the number of positions to the number of drafters (i.e. 10 drafters, 2 QB max, only top 20 QBs in data)

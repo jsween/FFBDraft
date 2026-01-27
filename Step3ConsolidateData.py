@@ -51,6 +51,39 @@ def calculate_defensive_points(row):
     return points
 
 
+def calculate_team_defense_points(row):
+    """Calculate fantasy points for team defense/special teams."""
+    points = 0
+
+    # Defensive actions
+    points += row.get('sack', 0) * scoring['tm_df_sp_tm']['sk']
+    points += row.get('interception', 0) * scoring['tm_df_sp_tm']['int']
+    points += row.get('fumble', 0) * scoring['tm_df_sp_tm']['fr']
+    points += row.get('def_touchdown', 0) * scoring['tm_df_sp_tm']['inttd']
+    points += row.get('safety', 0) * scoring['tm_df_sp_tm']['sf']
+
+    # Points allowed (based on your scoring config)
+    pts_allowed = row.get('Pts/G', 0)
+    if pts_allowed == 0:
+        points += scoring['tm_df_sp_tm']['pa0']
+    elif pts_allowed <= 6:
+        points += scoring['tm_df_sp_tm']['pa1']
+    elif pts_allowed <= 13:
+        points += scoring['tm_df_sp_tm']['pa7']
+    elif pts_allowed <= 17:
+        points += scoring['tm_df_sp_tm']['pa14']
+    elif pts_allowed <= 21:
+        points += scoring['tm_df_sp_tm']['pa18']
+    elif pts_allowed <= 27:
+        points += scoring['tm_df_sp_tm']['pa22']
+    elif pts_allowed <= 34:
+        points += scoring['tm_df_sp_tm']['pa35']
+    else:
+        points += scoring['tm_df_sp_tm']['pa46']
+
+    return points
+
+
 def calculate_kicking_points(row):
     """Calculate fantasy points for kickers."""
     points = 0
@@ -96,6 +129,13 @@ def main():
         return None
 
     try:
+        team_def_df = pd.read_csv(cleaned_path / "team_defense_summary.csv")
+        print(f"Loaded {len(team_def_df)} team defense records")
+    except FileNotFoundError:
+        print("Error: team_defense_summary.csv not found! Skipping team defense...")
+        return None
+
+    try:
         kick_df = pd.read_csv(cleaned_path / "kicking_position_summary.csv")
         print(f"Loaded {len(kick_df)} kicking records")
     except FileNotFoundError:
@@ -107,11 +147,16 @@ def main():
     off_df['fantasy_points'] = off_df.apply(calculate_offensive_points, axis=1)
     def_df['fantasy_points'] = def_df.apply(calculate_defensive_points, axis=1)
     kick_df['fantasy_points'] = kick_df.apply(calculate_kicking_points, axis=1)
-    print("   ✓ Fantasy points calculated for all players")
+    if team_def_df is not None:
+        team_def_df['fantasy_points'] = team_def_df.apply(calculate_team_defense_points, axis=1)
+        print("Fantasy points calculated for all players (including D/ST)")
+    else:
+        print("Fantasy points calculated for offensive, defensive, and kicking players")
 
     # Add player type identifier
     off_df['player_type'] = 'offensive'
     def_df['player_type'] = 'defensive'
+    team_def_df['player_type'] = 'team_defense'
     kick_df['player_type'] = 'kicker'
 
     # Standardize columns
@@ -125,6 +170,12 @@ def main():
     def_cols = ['position', 'season', 'games_played_season', 'fantasy_points', 'player_type']
     def_final = def_df[def_cols].copy()
 
+    # Team Defense
+    team_def_df = team_def_df.rename(columns={'Gms': 'games_played_season'})
+    team_def_df['position'] = 'D/ST'
+    team_def_cols = ['position', 'season', 'games_played_season', 'fantasy_points', 'player_type']
+    team_def_final = team_def_df[team_def_cols].copy()
+
     # Kickers - check if 'week' column exists and rename
     if 'week' in kick_df.columns:
         kick_df = kick_df.rename(columns={'week': 'games_played_season'})
@@ -136,7 +187,7 @@ def main():
 
     # Combine all datasets
     print("\nCombining datasets...")
-    combined_df = pd.concat([off_final, def_final, kick_final], ignore_index=True)
+    combined_df = pd.concat([off_final, def_final, kick_final, team_def_final], ignore_index=True)
     print(f"  Combined into {len(combined_df)} total player-seasons")
 
     # Calculate points per game
