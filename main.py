@@ -183,14 +183,19 @@ def run_draft():
                         print(
                             f"  {i}. {pos_info['position']:5s} - {pos_info['ppg']:.1f} PPG (Rank #{pos_info['rank']}, Value: {pos_info['value']:.1f})")
 
-                    # Simple input prompt
+                    # Simple input prompt to get user's draft choice
                     print("\n" + "-" * 60)
                     valid_positions = [p['position'] for p in top_positions]
                     print(f"  Enter position to draft: {' / '.join(valid_positions)}")
+                    print(f"  (or press ENTER to draft {valid_positions[0]})")
+
                     print("-" * 60)
 
                     while True:
                         choice = input("\nDraft position: ").strip().upper()
+                        # handle default first choice
+                        if choice == "":
+                            choice = valid_positions[0]
 
                         if choice in valid_positions:
                             # Find the player to draft
