@@ -12,9 +12,11 @@ This project is designed to showcase skills learned in the course. The project a
 
 ### To Do
 
-[X] Test Draft Analysis 
+[X] Test Draft Analysis
 
 [ ] Test draft
 
 ### Future Improvements
 * Limit the number of positions to the number of drafters (i.e. 10 drafters, 2 QB max, only top 20 QBs in data)
+
+* restrict drafting to positions to required players (K or D/ST) if only 2 rounds left

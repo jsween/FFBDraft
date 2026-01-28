@@ -1,3 +1,5 @@
+from builder.RosterBuilder import build_roster_skeleton
+from config.LeagueConfig import league_teams_default_config
 from recommender.DraftRecommender import DraftRecommender
 
 def view_position_analysis():
@@ -56,6 +58,237 @@ def view_position_analysis():
         print(f"\nUnexpected error: {e}")
         input("\nPress Enter to continue...")
 
+
+def run_draft():
+    """Interactive snake draft simulator with AI opponents."""
+    print("\n" + "=" * 60)
+    print("  FANTASY FOOTBALL DRAFT SIMULATOR")
+    print("=" * 60)
+
+    try:
+        recommender = DraftRecommender()
+        recommender.reset_draft()
+
+        # Get user's draft position
+        print("Draft Type: Snake Draft\nIn a Snake Draft, the order reverses each round.")
+        print("Ex: Round 1 goes 1→10, Round 2 goes 10→1")
+
+        while True:
+            try:
+                user_position = int(
+                    input(f"\nEnter your draft position (1-{league_teams_default_config['league_size']}): ").strip())
+                if 1 <= user_position <= league_teams_default_config['league_size']:
+                    break
+                print(f"Error: Please enter a number between 1 and {league_teams_default_config['league_size']}")
+            except ValueError:
+                print("Error: Please enter a valid number")
+
+        print(f"\nYou are drafting from position #{user_position}")
+        print(f"  League size: {league_teams_default_config['league_size']} teams")
+        input("\nPress Enter to start the draft...")
+
+        # Initialize rosters for all teams
+        num_teams = league_teams_default_config['league_size']
+        all_rosters = {}
+        for i in range(1, num_teams + 1):
+            roster_skeleton = build_roster_skeleton(league_teams_default_config)
+            all_rosters[i] = {pos: 0 for pos in roster_skeleton.keys()}
+
+        # Calculate total picks needed
+        roster_size = sum(build_roster_skeleton(league_teams_default_config).values())
+        total_rounds = roster_size
+
+        # Snake draft order
+        draft_complete = False
+        current_round = 1
+
+        while not draft_complete:
+            # Determine pick order for this round (snake draft)
+            if current_round % 2 == 1:  # Odd rounds: normal order
+                pick_order = list(range(1, num_teams + 1))
+            else:  # Even rounds: backwards draft order
+                pick_order = list(range(num_teams, 0, -1))
+
+            print("\n" + "=" * 60)
+            print(f"  ROUND {current_round}")
+            print("=" * 60)
+
+            for drafter_position in pick_order:
+                # Calculate overall pick number
+                if current_round % 2 == 1:
+                    overall_pick = (current_round - 1) * num_teams + drafter_position
+                else:
+                    overall_pick = (current_round - 1) * num_teams + (num_teams - drafter_position + 1)
+
+                # Check if draft is complete
+                user_roster_full = all(
+                    all_rosters[user_position][pos] >= build_roster_skeleton(league_teams_default_config)[pos]
+                    for pos in all_rosters[user_position].keys()
+                )
+                if user_roster_full:
+                    draft_complete = True
+                    break
+
+                if drafter_position == user_position:
+                    # USER'S TURN
+                    print("\n" + "█" * 60)
+                    print(f"  YOUR TURN - Pick #{overall_pick}")
+                    print("█" * 60)
+
+                    # Show user's roster
+                    print("\nYour Current Roster:")
+                    roster_skeleton = build_roster_skeleton(league_teams_default_config)
+                    for pos, count in all_rosters[user_position].items():
+                        needed = roster_skeleton[pos]
+                        status = "F" if count >= needed else "o"
+                        print(f"  [{status}] {pos:6s}: {count}/{needed}")
+
+                    # Get top 3 recommendations
+                    recommendations = recommender.get_recommendations(
+                        all_rosters[user_position],
+                        league_teams_default_config,
+                        top_n=25 # this gets the top 25, making sure we get 3 distinct positions to draft
+                    )
+
+                    if recommendations.empty:
+                        print("\nYour roster is full!")
+                        draft_complete = True
+                        break
+
+                    # Display top 3 positions to draft
+                    print("\n" + "~" * 60)
+                    print("  RECOMMENDED 3 POSITIONS TO DRAFT")
+                    print("~" * 60)
+
+                    top_positions = []
+                    seen_positions = set()
+
+                    for idx, row in recommendations.iterrows():
+                        pos = row['position']
+                        if pos not in seen_positions:
+                            top_positions.append({
+                                'position': pos,
+                                'ppg': row['points_per_game'],
+                                'rank': int(row['position_rank']),
+                                'value': row['value_score'],
+                                'index': idx
+                            })
+                            seen_positions.add(pos)
+                            if len(top_positions) == 3:
+                                break
+
+                    for i, pos_info in enumerate(top_positions, 1):
+                        print(
+                            f"  {i}. {pos_info['position']:5s} - {pos_info['ppg']:.1f} PPG (Rank #{pos_info['rank']}, Value: {pos_info['value']:.1f})")
+
+                    # Simple input prompt
+                    print("\n" + "-" * 60)
+                    valid_positions = [p['position'] for p in top_positions]
+                    print(f"  Enter position to draft: {' / '.join(valid_positions)}")
+                    print("-" * 60)
+
+                    while True:
+                        choice = input("\nDraft position: ").strip().upper()
+
+                        if choice in valid_positions:
+                            # Find the player to draft
+                            selected_pos_info = next(p for p in top_positions if p['position'] == choice)
+                            player_idx = selected_pos_info['index']
+
+                            # Get the actual best available player at that position
+                            best_at_pos = recommender.get_best_available_by_position(choice, n=1)
+                            if best_at_pos.empty:
+                                print(f"No available players at {choice}")
+                                continue
+
+                            # Find the index of this player in the rankings
+                            player_to_draft = best_at_pos.index[0]
+
+                            # Draft the player
+                            recommender.mark_player_drafted(player_to_draft)
+
+                            # Update roster
+                            if not update_roster(all_rosters[user_position], choice, league_teams_default_config):
+                                print(f"ERRORThat position {choice} is full!")
+                                recommender.drafted_players.remove(player_to_draft)
+                                continue
+
+                            drafted_player = best_at_pos.iloc[0]
+                            print(f"\nYOU DRAFTED: {choice}")
+                            print(f"PPG: {drafted_player['points_per_game']:.2f} | Position Rank: #{int(drafted_player['position_rank'])}")
+                            break
+                        else:
+                            print(f"Please enter one of: {' / '.join(valid_positions)}")
+
+                else:
+                    # Sim other drafters for speed of testing
+                    computer_recommendations = recommender.get_recommendations(
+                        all_rosters[drafter_position],
+                        league_teams_default_config,
+                        top_n=10
+                    )
+
+                    if not computer_recommendations.empty:
+                        # Comp picks best available
+                        comp_pick_idx = computer_recommendations.index[0]
+                        comp_player = computer_recommendations.iloc[0]
+                        comp_position = comp_player['position']
+
+                        recommender.mark_player_drafted(comp_pick_idx)
+                        update_roster(all_rosters[drafter_position], comp_position, league_teams_default_config)
+
+                        print(
+                            f"  Pick #{overall_pick}: Drafter {drafter_position} → {comp_position} ({comp_player['points_per_game']:.1f} PPG)")
+
+            if not draft_complete:
+                current_round += 1
+
+        # Draft complete
+        print("\n" + "=" * 60)
+        print("  DRAFT COMPLETE!")
+        print("=" * 60)
+        print("\nYour Final Roster:")
+        for pos, count in all_rosters[user_position].items():
+            needed = build_roster_skeleton(league_teams_default_config)[pos]
+            status = "✓" if count >= needed else "✗"
+            print(f"  [{status}] {pos:6s}: {count}/{needed}")
+
+        input("\nPress Enter to return to main menu...")
+
+    except FileNotFoundError:
+        print("\nError: Required data files not found!")
+        print("\nPlease run the data pipeline first:")
+        print("  1. py Step3ConsolidateData.py")
+        print("  2. py Step4TrainModel.py")
+        input("\nPress Enter to continue...")
+    except Exception as e:
+        print(f"\nUnexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        input("\nPress Enter to continue...")
+
+
+def update_roster(roster, position, league_config):
+    """
+    Update roster with drafted player.
+    Returns True if successful, False if no spot available.
+    """
+    starter_needed = league_config['starters_per_pos'].get(position, 0)
+
+    if roster[position] < starter_needed:
+        roster[position] += 1
+        return True
+    elif (position in league_config['flex_eligible'] and
+          roster['FLEX'] < league_config['flex_spots']):
+        roster['FLEX'] += 1
+        return True
+    elif roster['BENCH'] < league_config['bench_spots']:
+        roster['BENCH'] += 1
+        return True
+
+    return False
+
+
 def main_menu():
     """
     Shows the home menu and route to the selected option.
@@ -84,9 +317,7 @@ def main_menu():
         if choice == "1":
             view_position_analysis()
         elif choice == "2":
-            # TODO: Draft
-            # run_draft()
-            pass
+            run_draft()
         elif choice == "3":
             run = False
             print("\n" + "=" * 50)
