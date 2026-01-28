@@ -11,5 +11,14 @@ league_teams_default_config = {
     },
     "flex_spots": 2,
     "flex_eligible": ["RB", "WR", "TE"],
-    "bench_spots": 3
+    "bench_spots": 3,
+    "max_per_position": {
+        "QB": 2,
+        "RB": 4,
+        "WR": 4,
+        "TE": 3,
+        "K": 2,
+        "IDP": 2,
+        "D/ST": 2
+    }
 }

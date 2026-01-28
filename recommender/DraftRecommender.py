@@ -29,23 +29,32 @@ class DraftRecommender:
         needs = {}
 
         # Check starter positions
-        for pos, required in league_config['starters_per_pos'].items():
-            filled = roster.get(pos, 0)
-            if filled < required:
-                needs[pos] = required - filled
+        for po, required in league_config['starters_per_pos'].items():
+            filled = roster.get(po, 0)
+            max_allowed = league_config.get('max_per_position', {}).get(po, 99)
+
+            if filled < max_allowed:
+                if filled < required:
+                    needs[po] = required - filled
 
         # Check flex spots
         flex_filled = roster.get('FLEX', 0)
         if flex_filled < league_config['flex_spots']:
-            for pos in league_config['flex_eligible']:
-                needs[pos] = needs.get(pos, 0) + 1
+            for po in league_config['flex_eligible']:
+                filled = roster.get(po, 0)
+                max_allowed = league_config.get('max_per_position', {}).get(po, 99)
+                if filled < max_allowed:
+                    needs[po] = needs.get(po, 0) + 1
 
         # Always consider bench
         bench_filled = roster.get('BENCH', 0)
         if bench_filled < league_config['bench_spots']:
-            # All positions can fill bench
-            for pos in league_config['starters_per_pos'].keys():
-                needs[pos] = needs.get(pos, 0) + 1
+            # All positions can fill bench (if at max or under)
+            for po in league_config['starters_per_pos'].keys():
+                filled = roster.get(po, 0)
+                max_allowed = league_config.get('max_per_position', {}).get(po, 99)
+                if filled < max_allowed:
+                    needs[po] = needs.get(po, 0) + 1
 
         return needs
 

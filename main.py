@@ -143,7 +143,8 @@ def run_draft():
                     for pos, count in all_rosters[user_position].items():
                         needed = roster_skeleton[pos]
                         status = "F" if count >= needed else "o"
-                        print(f"  [{status}] {pos:6s}: {count}/{needed}")
+                        max_allowed = league_teams_default_config['max_per_position'].get(pos, needed)
+                        print(f"  [{status}] {pos:6s}: {count}/{needed} (max: {max_allowed})")
 
                     # Get top 3 recommendations
                     recommendations = recommender.get_recommendations(
@@ -302,8 +303,14 @@ def update_roster(roster, position, league_config):
     Update roster with drafted player.
     Returns True if successful, False if no spot available.
     """
-    starter_needed = league_config['starters_per_pos'].get(position, 0)
 
+    max_allowed = league_config['max_per_position'].get(position, 99)
+    current_at_position = roster.get(position, 0)
+
+    if current_at_position >= max_allowed:
+        return False  # reached max number of players for this position
+
+    starter_needed = league_config['starters_per_pos'].get(position, 0)
     if roster[position] < starter_needed:
         roster[position] += 1
         return True
