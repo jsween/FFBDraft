@@ -1,3 +1,5 @@
+import random
+
 from builder.RosterBuilder import build_roster_skeleton
 from config.LeagueConfig import league_teams_default_config
 from recommender.DraftRecommender import DraftRecommender
@@ -225,18 +227,40 @@ def run_draft():
                     computer_recommendations = recommender.get_recommendations(
                         all_rosters[drafter_position],
                         league_teams_default_config,
-                        top_n=10
+                        top_n=15 # more options for random picking
                     )
 
                     if not computer_recommendations.empty:
-                        # Comp picks best available
-                        comp_pick_idx = computer_recommendations.index[0]
-                        comp_player = computer_recommendations.iloc[0]
-                        comp_position = comp_player['position']
+                        # Get top 3 unique positions (like user sees)
+                        comp_top_positions = []
+                        seen_positions = set()
 
-                        recommender.mark_player_drafted(comp_pick_idx)
-                        update_roster(all_rosters[drafter_position], comp_position, league_teams_default_config)
+                        for idx, row in computer_recommendations.iterrows():
+                            pos = row['position']
+                            if pos not in seen_positions:
+                                comp_top_positions.append({
+                                    'position': pos,
+                                    'index': idx
+                                })
+                                seen_positions.add(pos)
+                                if len(comp_top_positions) == 3:
+                                    break
 
+                        comp_position = None
+                        comp_player = None
+                        # Randomly select from top 3 positions (simulating drafter bias)
+                        if comp_top_positions:
+                            selected = random.choice(comp_top_positions)
+                            comp_position = selected['position']
+
+                            # Draft best available at selected position
+                            best_at_pos = recommender.get_best_available_by_position(comp_position, n=1)
+                            if not best_at_pos.empty:
+                                comp_idx = best_at_pos.index[0]
+                                comp_player = best_at_pos.iloc[0]
+
+                                recommender.mark_player_drafted(comp_idx)
+                                update_roster(all_rosters[drafter_position], comp_position, league_teams_default_config)
                         print(
                             f"  Pick #{overall_pick}: Drafter {drafter_position} → {comp_position} ({comp_player['points_per_game']:.1f} PPG)")
 
