@@ -4,6 +4,8 @@ based on roster needs and value.
 """
 import pandas as pd
 
+from logic.DraftRulesFOL import DraftRules
+
 
 class DraftRecommender:
     """Recommends players based on roster needs and player value."""
@@ -150,7 +152,9 @@ class DraftRecommender:
                                                    axis=1)
 
         # Sort by value and get top N
-        recs = available.nlargest(top_n, 'value_score')
+        recs = available.nlargest(top_n * 2, 'value_score') # get 2n for FOL filtering
+
+        fol_recs = self.apply_fol_filter(roster, recs, league_config, season)
 
         # Format output
         output_cols = [
@@ -158,7 +162,8 @@ class DraftRecommender:
             'position_rank', 'position_percentile', 'value_score'
         ]
 
-        return recs[output_cols].round(2)
+        return fol_recs[output_cols].round(2)
+
 
     def mark_player_drafted(self, player_index):
         """Mark a player as drafted (no longer available)."""
