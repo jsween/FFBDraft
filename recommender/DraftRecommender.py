@@ -15,6 +15,7 @@ class DraftRecommender:
         self.rankings = pd.read_csv(player_rankings_path)
         self.drafted_players = set()
         self._scarcity_cache = {}
+        self.fol_rules = None
 
     @staticmethod
     def get_position_needs(roster, league_config):
@@ -118,6 +119,29 @@ class DraftRecommender:
                 value_score *= 0.95
 
         return value_score
+
+    def apply_fol_filter(self, roster, recs, league_config, season=2024):
+        """
+        Filter recommendations using First-Order Logic rules.
+        Returns only players that satisfy FOL constraints.
+        """
+        # Initialize FOL rules
+        if self.fol_rules is None:
+            self.fol_rules = DraftRules(league_config)
+        # Get scarcity data
+        if season not in self._scarcity_cache:
+            self._scarcity_cache[season] = self.get_position_scarcity(season=season)
+        scarcity_data = self._scarcity_cache[season]
+        # Filter using FOL
+        filtered = []
+        for idx, row in recs.iterrows():
+            if self.fol_rules.should_recommend(roster, row, scarcity_data):
+                filtered.append(idx)
+        # Return filtered recommendations
+        if filtered:
+            return recs.loc[filtered]
+        else:
+            return recs  # Return all if no rules applicable
 
     def get_recommendations(self, roster, league_config, season=2024, top_n=10):
         """
