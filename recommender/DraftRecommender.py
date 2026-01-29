@@ -4,7 +4,7 @@ based on roster needs and value.
 """
 import pandas as pd
 
-from logic.DraftRulesFOL import DraftRules
+from logic import DraftRules
 
 
 class DraftRecommender:
