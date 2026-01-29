@@ -3,6 +3,10 @@
 
 This project is designed to showcase skills learned in the course. The project allows users to use this tool to draft Fantasy Football players. The program leverages Random Forest Regression (supervised learning), First Order Logic (FOL), and the AI Recommendation feature combines the ML model, analytics, and FOL to adapt to the Draft changing state (other team's picks).
 
+### Data Sources
+1. Most of the raw data used in the project came from Kaggle, collected by Hyde in dataset [NFL Stats 2012-2024](https://www.kaggle.com/datasets/philiphyde1/nfl-stats-1999-2022) 
+2. Team defense data was manually collected and entered from [NFL.com](https://www.nfl.com/stats/team-stats/defense/passing/2024/reg/all)
+
 ### Instructions to Train Model
 1. Navigate to project directory in terminal window
 2. Train the model: `py .\Step4TrainModel.py`
