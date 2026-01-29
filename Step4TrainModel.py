@@ -10,6 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error, r2_score
 import joblib
 
+from config.LeagueConfig import league_teams_default_config
+
 
 def create_position_rankings(df):
     """Create rankings within each position based on fantasy points."""
@@ -56,6 +58,53 @@ def prepare_features(df):
     return data, le
 
 
+def filter_to_draftable_players(df, league_size=10):
+    """
+    Filter to only keep draftable players per position.
+    Keeps top N players per position based on league roster limits.
+
+    Args:
+        df: DataFrame with position rankings
+        league_size: Number of teams in league
+
+    Returns:
+        Filtered DataFrame
+    """
+    from config.LeagueConfig import league_teams_default_config
+
+    # Calculate draftable count per position (adding a 20% buffer)
+    max_per_pos = league_teams_default_config['max_per_position']
+
+    draftable_counts = {}
+    for pos, max_allowed in max_per_pos.items():
+        # Total needed (num players * max at position) + buffer if wanted (1.25 = 25% buffer)
+        draftable_counts[pos] = int((league_size * max_allowed) * 1)
+
+    print(f"\n   Draftable player counts:")
+    for pos, count in draftable_counts.items():
+        print(f"     {pos:5s}: Top {count}")
+
+    # Filter to top N per position per season
+    filtered_dfs = []
+
+    for season in df['season'].unique():
+        season_data = df[df['season'] == season]
+
+        for position in season_data['position'].unique():
+            pos_data = season_data[season_data['position'] == position]
+
+            # Get count for this position (default to 30 if not specified)
+            keep_count = draftable_counts.get(position, 30)
+
+            # Keep top N by points_per_game
+            top_players = pos_data.nlargest(keep_count, 'points_per_game')
+            filtered_dfs.append(top_players)
+
+    result = pd.concat(filtered_dfs, ignore_index=True)
+
+    return result
+
+
 def main():
     """Main training function."""
     print("="*60)
@@ -73,6 +122,13 @@ def main():
     # Create position rankings
     print("\nCreating position rankings...")
     df_ranked = create_position_rankings(df)
+    # Filter to only draftable players
+    print("\n   Filtering to draftable players only...")
+    original_count = len(df_ranked)
+    df_ranked = filter_to_draftable_players(df_ranked, league_size=league_teams_default_config['league_size'])
+    filtered_count = original_count - len(df_ranked)
+    print(f"   ✓ Removed {filtered_count} non-draftable players")
+    print(f"   ✓ Kept {len(df_ranked)} draftable players")
     # Save rankings
     rankings_path = "data/summary/player_rankings.csv"
     df_ranked.to_csv(rankings_path, index=False)
