@@ -78,7 +78,7 @@ def filter_to_draftable_players(df, league_size=10):
     draftable_counts = {}
     for pos, max_allowed in max_per_pos.items():
         # Total needed (num players * max at position) + buffer if wanted (1.25 = 25% buffer)
-        draftable_counts[pos] = int((league_size * max_allowed) * 1)
+        draftable_counts[pos] = int((league_size * max_allowed) * 1.1)
 
     print(f"\n   Draftable player counts:")
     for pos, count in draftable_counts.items():
@@ -129,6 +129,13 @@ def main():
     filtered_count = original_count - len(df_ranked)
     print(f"   ✓ Removed {filtered_count} non-draftable players")
     print(f"   ✓ Kept {len(df_ranked)} draftable players")
+    # Recalculate percentiles in draft pool
+    for position in df_ranked['position'].unique():
+        pos_mask = df_ranked['position'] == position
+        df_ranked.loc[pos_mask, 'position_percentile'] = (
+            df_ranked.loc[pos_mask, 'points_per_game']
+            .rank(pct=True)
+        )
     # Save rankings
     rankings_path = "data/summary/player_rankings.csv"
     df_ranked.to_csv(rankings_path, index=False)

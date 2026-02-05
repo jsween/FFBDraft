@@ -30,7 +30,6 @@ Note: Training the model only uses the player rankings csv file.
 3. Draft all positions until roster is full
 
 #### Known bugs
-* Analysis - IDP not accurately displayed
 * Recommender - Does not limit options to necessary positons left or exclude backups when starting positions open
 
 #### Future Improvements
