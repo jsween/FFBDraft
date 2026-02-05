@@ -146,11 +146,11 @@ def run_draft():
                         max_allowed = league_teams_default_config['max_per_position'].get(pos, needed)
                         print(f"  [{status}] {pos:6s}: {count}/{needed} (max: {max_allowed})")
 
-                    # Get top 3 recommendations
+                    # Get top 5 recommendations
                     recommendations = recommender.get_recommendations(
                         all_rosters[user_position],
                         league_teams_default_config,
-                        top_n=25 # this gets the top 25, making sure we get 3 distinct positions to draft
+                        top_n=50 # this gets the top 25, making sure we get 5 distinct positions to draft
                     )
 
                     if recommendations.empty:
@@ -158,9 +158,9 @@ def run_draft():
                         draft_complete = True
                         break
 
-                    # Display top 3 positions to draft
+                    # Display top 5 positions to draft
                     print("\n" + "~" * 60)
-                    print("  RECOMMENDED 3 POSITIONS TO DRAFT")
+                    print("  TOP RECOMMENDED POSITIONS TO DRAFT")
                     print("~" * 60)
 
                     top_positions = []
@@ -177,7 +177,7 @@ def run_draft():
                                 'index': idx
                             })
                             seen_positions.add(pos)
-                            if len(top_positions) == 3:
+                            if len(top_positions) == 5:
                                 break
 
                     for i, pos_info in enumerate(top_positions, 1):
@@ -233,11 +233,11 @@ def run_draft():
                     computer_recommendations = recommender.get_recommendations(
                         all_rosters[drafter_position],
                         league_teams_default_config,
-                        top_n=15 # more options for random picking
+                        top_n=50 # more options for random picking
                     )
 
                     if not computer_recommendations.empty:
-                        # Get top 3 unique positions (like user sees)
+                        # Get top 5 unique positions (like user sees)
                         comp_top_positions = []
                         seen_positions = set()
 
@@ -249,12 +249,12 @@ def run_draft():
                                     'index': idx
                                 })
                                 seen_positions.add(pos)
-                                if len(comp_top_positions) == 3:
+                                if len(comp_top_positions) == 5:
                                     break
 
                         comp_position = None
                         comp_player = None
-                        # Randomly select from top 3 positions (simulating drafter bias)
+                        # Randomly select from top 5 positions (simulating drafter bias)
                         if comp_top_positions:
                             selected = random.choice(comp_top_positions)
                             comp_position = selected['position']
