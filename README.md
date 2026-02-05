@@ -8,18 +8,19 @@ This project is designed to showcase skills learned in the course. The project a
 2. Team defense data was manually collected and entered from [NFLverse](https://www.footballdb.com/statistics/nfl/team-stats/defense-totals/2024/regular-season?sort=ydsgm)
 3. Kicker data was collected from [The Football Database](https://www.footballdb.com/statistics/nfl/team-stats/defense-totals/2024/regular-season?sort=ydsgm)
 
-### Instructions to Train Model
-1. Navigate to project directory in terminal window
-2. Train the model: `py Step4TrainModel.py`
-
-Note: Training the model only uses the consolidate_player_data file to generate the player_rankings file used by the 
-draft recommender. Other data not included due to size restraints.
-### Instructions to Run
-
+### Environment Setup
 1. Install Python
 2. Navigate to project directory in a terminal window
 3. Install necessary libraries `py -m pip install -r requirements.txt`
-4. Run program:```py main.py```
+
+### Instructions to Train Model
+* In the terminal, execute: `py Step4TrainModel.py`
+
+Note: Training the model only uses the consolidate_player_data file to generate the player_rankings file used by the 
+draft recommender. Other data not included due to size restraints.
+
+### Instructions to Run
+* In the terminal, execute:```py main.py```
 
 ### Directions to Use Program
 * Select `1` to view detailed position analysis
