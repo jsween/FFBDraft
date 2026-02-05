@@ -37,3 +37,4 @@ Note: Training the model only uses the player rankings csv file.
 * Add individual player data to track player's performance, age, and injuries
 * Add a feature to display a positions health rating (e.g. 87% based on avg player's age and injury frequency)
 * Add an ability to actually draft live where user enters the positions drafted by other players
+* Build out tests
