@@ -217,7 +217,7 @@ def run_draft():
 
                             # Update roster
                             if not update_roster(all_rosters[user_position], choice, league_teams_default_config):
-                                print(f"ERRORThat position {choice} is full!")
+                                print(f"ERROR: That position {choice} is full!")
                                 recommender.drafted_players.remove(player_to_draft)
                                 continue
 
