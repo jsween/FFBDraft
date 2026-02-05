@@ -9,14 +9,14 @@ This project is designed to showcase skills learned in the course. The project a
 
 ### Instructions to Train Model
 1. Navigate to project directory in terminal window
-2. Train the model: `py .\Step4TrainModel.py`
+2. Train the model: `py Step4TrainModel.py`
 
 Note: Training the model only uses the player rankings csv file.
 ### Instructions to Run
 
 1. Install Python
-2. Install necessary libraries
-3. Navigate to project directory in a terminal window
+2. Navigate to project directory in a terminal window
+3. Install necessary libraries `py -m pip install -r requirements.txt`
 4. Run program:```py main.py```
 
 ### Directions to Use Program
@@ -37,4 +37,5 @@ Note: Training the model only uses the player rankings csv file.
 * Add individual player data to track player's performance, age, and injuries
 * Add a feature to display a positions health rating (e.g. 87% based on avg player's age and injury frequency)
 * Add an ability to actually draft live where user enters the positions drafted by other players
+* Add NFL APIs for player updates
 * Build out tests
